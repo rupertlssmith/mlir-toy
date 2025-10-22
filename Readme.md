@@ -1,5 +1,7 @@
 # Try out working with mlir
 
+## To work directly on a Debian host
+
 Install the following packages on Debian or other apt based Linux:
 
     sudo apt install clang lld ninja-build cmake ccache
@@ -10,23 +12,32 @@ A CMake preset configuration to build with ninja, clang and lld exists in
     cmake --preset ninja-clang-lld-linux
     cmake --build --preset build
 
-## To use the Docker image
+## To use the interactive Docker container
 
-Follow the advice here on installing Docker, [install docker](https://docs.docker.com/engine/install/debian/) 
+This step will take some time top build the docker image, as it checks out the 
+LLVM git and builds it. This is set up to support interactive development inside
+the container, so create it with your user id as described.
+
+Follow the advice here on installing Docker, 
+[install docker](https://docs.docker.com/engine/install/debian/) 
 as well as setting up non-root users to be able to use it, 
 [non-root users](https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user).
 
-To confirm it is working correctly run these commands (`newgrp docker` only needs to be run if you are not 
-logging out and back in again):
+To confirm it is working correctly run these commands (`newgrp docker` only 
+needs to be run if you are not logging out and back in again):
 
     newgrp docker
     docker run hello-world
 
-This step may take some time as it checks out the LLVM git and builds it. To
-build the docker image:
+To build the docker image with your user id baked in:
 
-    docker build -t mlir-dev:bookworm .
+    docker build -t mlir-dev:bookworm \
+      --build-arg USER_UID=$(id -u) \
+      --build-arg USER_GID=$(id -g) \
+      .
 
-Top run an interactive session in a docker container:
+Top run an interactive session as your user inside the docker container:
 
     docker run -it --rm -v "$PWD":/work mlir-dev:bookworm bash
+
+Your build artifacts will be owned by you on the host, not root.

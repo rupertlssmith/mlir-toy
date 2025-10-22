@@ -45,33 +45,31 @@ RUN cmake -S llvm -B build -G Ninja \
 FROM debian:bookworm
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Tools you asked for + standard build bits to build your own project inside the container
+# Build args to match host UID/GID at build time
+ARG USERNAME=dev
+ARG USER_UID=1000
+ARG USER_GID=${USER_UID}
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    git \
-    build-essential \
-    python3 \
-    cmake \
-    ninja-build \
-    clang \
-    lld \
-    # runtime libs commonly needed by LLVM/MLIR tools
-    zlib1g \
-    libxml2 \
+    ca-certificates git build-essential python3 cmake ninja-build clang lld \
+    zlib1g-dev libxml2-dev pkg-config \
  && rm -rf /var/lib/apt/lists/*
 
-# Bring over the installed LLVM/MLIR
+# Copy installed LLVM/MLIR from builder
 COPY --from=builder /opt/llvm-mlir /opt/llvm-mlir
 
-# Make MLIR easy to find for downstream CMake projects
+# Create non-root user
+RUN groupadd -g ${USER_GID} ${USERNAME} \
+ && useradd -m -u ${USER_UID} -g ${USER_GID} -s /bin/bash ${USERNAME} \
+ && mkdir -p /work && chown ${USER_UID}:${USER_GID} /work
+
+# Environment for convenient builds
 ENV CMAKE_PREFIX_PATH=/opt/llvm-mlir:${CMAKE_PREFIX_PATH}
 ENV LD_LIBRARY_PATH=/opt/llvm-mlir/lib:${LD_LIBRARY_PATH}
-# If you ever add LLVM tools to PATH in your build, expose them here too:
 ENV PATH=/opt/llvm-mlir/bin:${PATH}
-# Prefer clang/clang++ by default inside the container
 ENV CC=clang
 ENV CXX=clang++
 
-# Nice default workspace
+USER ${USERNAME}
 WORKDIR /work
 CMD ["/bin/bash"]
