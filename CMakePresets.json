@@ -1,0 +1,38 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 20 },
+  "configurePresets": [
+    {
+      "name": "ninja-clang-lld-linux",
+      "displayName": "Ninja + Clang + lld (Linux/macOS LLVM)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_EXE_LINKER_FLAGS_INIT": "-fuse-ld=lld",
+        "CMAKE_SHARED_LINKER_FLAGS_INIT": "-fuse-ld=lld"
+      }
+    },
+    {
+      "name": "ninja-clangcl-lld-win",
+      "displayName": "Ninja + clang-cl + lld (Windows)",
+      "generator": "Ninja",
+      "toolset": "clangcl",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_LINKER": "C:/Program Files/LLVM/bin/lld-link.exe"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "build",
+      "configurePreset": "ninja-clang-lld-linux"
+    },
+    {
+      "name": "build-win",
+      "configurePreset": "ninja-clangcl-lld-win",
+      "configuration": "Release"
+    }
+  ]
+}
