@@ -27,7 +27,7 @@ RUN git clone --depth=1 --branch "llvmorg-${LLVM_VERSION}" https://github.com/ll
 WORKDIR /src/llvm-project
 RUN cmake -S llvm -B build -G Ninja \
       -DLLVM_ENABLE_PROJECTS="mlir" \
-      -DLLVM_TARGETS_TO_BUILD="host" \
+      -DLLVM_TARGETS_TO_BUILD="Native;NVPTX;AMDGPU" \
       -DLLVM_ENABLE_ASSERTIONS=ON \
       -DLLVM_ENABLE_RTTI=ON \
       -DMLIR_ENABLE_CMAKE_PACKAGE=ON \

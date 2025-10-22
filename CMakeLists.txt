@@ -21,7 +21,7 @@ target_link_libraries(hello PRIVATE MLIRIR MLIRSupport)
 
 # (Optional) Stricter warnings
 if (MSVC)
-  target_compile_options(hello PRIVATE /W4 /permissive-)
+  target_compile_options(hello PRIVATE /w)
 else()
-  target_compile_options(hello PRIVATE -Wall -Wextra -Wpedantic)
+  target_compile_options(hello PRIVATE -w)
 endif()
