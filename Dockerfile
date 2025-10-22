@@ -4,7 +4,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # Choose a stable LLVM release tag (change as you like)
 ARG LLVM_VERSION=21.1.4
 # Parallelism for CMake/Ninja
-ARG CMAKE_BUILD_PARALLEL_LEVEL=8
+ARG CMAKE_BUILD_PARALLEL_LEVEL=24
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -31,6 +31,8 @@ RUN cmake -S llvm -B build -G Ninja \
       -DLLVM_ENABLE_ASSERTIONS=ON \
       -DLLVM_ENABLE_RTTI=ON \
       -DMLIR_ENABLE_CMAKE_PACKAGE=ON \
+      -DLLVM_ENABLE_ZLIB=OFF \
+      -DLLVM_ENABLE_LIBXML2=OFF \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_C_COMPILER=clang \
       -DCMAKE_CXX_COMPILER=clang++ \
