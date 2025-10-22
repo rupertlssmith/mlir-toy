@@ -16,7 +16,7 @@ A CMake preset configuration to build with ninja, clang and lld exists in
 
 This step will take some time top build the docker image, as it checks out the 
 LLVM git and builds it. This is set up to support interactive development inside
-the container, so create it with your user id as described.
+the container, and will detect and run as your current user.
 
 Follow the advice here on installing Docker, 
 [install docker](https://docs.docker.com/engine/install/debian/) 
@@ -29,12 +29,9 @@ needs to be run if you are not logging out and back in again):
     newgrp docker
     docker run hello-world
 
-To build the docker image with your user id baked in:
+To build the docker image:
 
-    docker build -t mlir-dev:bookworm \
-      --build-arg USER_UID=$(id -u) \
-      --build-arg USER_GID=$(id -g) \
-      .
+    docker build -t mlir-dev:bookworm .
 
 Top run an interactive session as your user inside the docker container:
 
