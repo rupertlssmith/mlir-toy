@@ -38,3 +38,8 @@ Top run an interactive session as your user inside the docker container:
     docker run -it --rm -v "$PWD":/work mlir-dev:bookworm bash
 
 Your build artifacts will be owned by you on the host, not root.
+
+Build it with:
+
+    cmake --preset ninja-clang-lld-linux
+    cmake --build --preset build
