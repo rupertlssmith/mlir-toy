@@ -9,8 +9,7 @@ find_package(MLIR REQUIRED CONFIG)
 # ============================================================
 # 2) Shared configuration target (inherits common settings)
 # ============================================================
-add_library(toy_common INTERFACE
-        chapter2/include/toy/Dialect.h)
+add_library(toy_common INTERFACE)
 
 # Require C++20
 target_compile_features(toy_common INTERFACE cxx_std_20)
