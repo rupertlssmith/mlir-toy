@@ -39,12 +39,15 @@ Top run an interactive session as your user inside the docker container:
 
 Your build artifacts will be owned by you on the host, not root.
 
-Build it with:
+Set up the build with:
 
     cmake --preset ninja-clang-lld-linux
-    cmake --build --preset build
 
 ## Examples
+
+### Chapter 1
+
+### Chapter 2
 
 ### Chapter 3
 
