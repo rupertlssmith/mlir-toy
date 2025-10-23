@@ -72,3 +72,14 @@ Try function inlining and shape inference passes:
 
     ./build/chapter4/toyc-ch4 -emit=mlir < chapter4/example1.toy
     ./build/chapter4/toyc-ch4 -emit=mlir -opt < chapter4/example1.toy
+
+### Chapter 5
+
+Build it:
+
+    cmake --build --preset build --target toyc-ch5
+
+Try partial lowering to affine and memref (note: -emit=mlir-affine also does -opt):
+
+    ./build/chapter5/toyc-ch5 -emit=mlir < chapter5/example1.toy
+    ./build/chapter5/toyc-ch5 -emit=mlir-affine < chapter5/example1.toy
