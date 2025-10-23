@@ -61,3 +61,14 @@ Try table-gen rewrite rule for eliminating unnecessary reshapes:
 
     ./build/chapter3/toyc-ch3 -emit=mlir < chapter3/example2.toy
     ./build/chapter3/toyc-ch3 -emit=mlir -opt < chapter3/example2.toy
+
+### Chapter 4
+
+Build it:
+
+    cmake --build --preset build --target toyc-ch4
+
+Try function inlining and shape inference passes:
+
+    ./build/chapter4/toyc-ch4 -emit=mlir < chapter4/example1.toy
+    ./build/chapter4/toyc-ch4 -emit=mlir -opt < chapter4/example1.toy
