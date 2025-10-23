@@ -83,3 +83,17 @@ Try partial lowering to affine and memref (note: -emit=mlir-affine also does -op
 
     ./build/chapter5/toyc-ch5 -emit=mlir < chapter5/example1.toy
     ./build/chapter5/toyc-ch5 -emit=mlir-affine < chapter5/example1.toy
+
+### Chapter 6
+
+Build it:
+
+    cmake --build --preset build --target toyc-ch6
+
+Try full lowering to llvm:
+
+    ./build/chapter6/toyc-ch6 -emit=mlir-llvm < chapter6/example1.toy
+
+Try running the example in the JIT
+
+    ./build/chapter6/toyc-ch6 -emit=mlir-llvm < chapter6/example2.toy
