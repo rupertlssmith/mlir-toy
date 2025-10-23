@@ -43,3 +43,21 @@ Build it with:
 
     cmake --preset ninja-clang-lld-linux
     cmake --build --preset build
+
+## Examples
+
+### Chapter 3
+
+Build it:
+
+    cmake --build --preset build --target toyc-ch3
+ 
+Try hand coded rule for eliminating double transpose:
+
+    ./build/chapter3/toyc-ch3 -emit=mlir < chapter3/example1.toy
+    ./build/chapter3/toyc-ch3 -emit=mlir -opt < chapter3/example1.toy
+ 
+Try table-gen rewrite rule for eliminating unnecessary reshapes:
+
+    ./build/chapter3/toyc-ch3 -emit=mlir < chapter3/example2.toy
+    ./build/chapter3/toyc-ch3 -emit=mlir -opt < chapter3/example2.toy
