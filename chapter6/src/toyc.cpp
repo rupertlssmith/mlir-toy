@@ -183,7 +183,7 @@ int loadAndProcessMLIR(mlir::MLIRContext &context,
 
     if (isLoweringToLLVM) {
         // Finish lowering the toy IR to the LLVM dialect.
-        //pm.addPass(mlir::toy::createLowerToLLVMPass());
+        pm.addPass(mlir::toy::createLowerToLLVMPass());
         // This is necessary to have line tables emitted and basic
         // debugger working. In the future we will add proper debug information
         // emission directly from our frontend.
