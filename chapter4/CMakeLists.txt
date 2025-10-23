@@ -24,6 +24,7 @@ add_toy_chapter(toyc-ch4
     src/mlir/Dialect.cpp
     src/mlir/MLIRGen.cpp
     src/mlir/ToyCombine.cpp
+    src/mlir/ShapeInferencePass.cpp
     src/parser/AST.cpp
   LIBS
     # Optional: add extra MLIR/LLVM libs this chapter needs
@@ -31,6 +32,7 @@ add_toy_chapter(toyc-ch4
   DEPENDS
     ToyCh4OpsIncGen
     ToyCh4CombineIncGen
+    ToyCh4ShapeInferenceInterfaceIncGen
 )
 
 include_directories(include/)
@@ -39,6 +41,8 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/include/)
 target_link_libraries(toyc-ch4
         PRIVATE
         MLIRAnalysis
+        MLIRCastInterfaces
+        MLIRCallInterfaces
         MLIRFunctionInterfaces
         MLIRIR
         MLIRParser
