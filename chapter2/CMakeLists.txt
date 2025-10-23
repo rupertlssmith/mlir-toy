@@ -1,7 +1,6 @@
 add_subdirectory(include/toy)
 
-add_toy_chapter(
-  NAME toyc-ch2
+add_toy_chapter(toyc-ch2
   SOURCES
     src/toyc.cpp
     src/mlir/Dialect.cpp
@@ -13,6 +12,9 @@ add_toy_chapter(
   DEPENDS
     ToyCh2OpsIncGen
 )
+
+include_directories(include/)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/include/)
 
 target_link_libraries(toyc-ch2
         PRIVATE

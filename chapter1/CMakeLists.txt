@@ -1,5 +1,4 @@
-add_toy_chapter(
-  NAME toyc-ch1
+add_toy_chapter(toyc-ch1
   SOURCES
     src/toyc.cpp
     src/parser/AST.cpp

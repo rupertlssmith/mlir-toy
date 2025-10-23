@@ -10,15 +10,15 @@ find_package(MLIR REQUIRED CONFIG)
 # Prefer the exported *_CMAKE_DIR vars if present; fall back to *_DIR.
 if (DEFINED MLIR_CMAKE_DIR)
     list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
-else()
+else ()
     list(APPEND CMAKE_MODULE_PATH "${MLIR_DIR}")
-endif()
+endif ()
 
 if (DEFINED LLVM_CMAKE_DIR)
     list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
-else()
+else ()
     list(APPEND CMAKE_MODULE_PATH "${LLVM_DIR}")
-endif()
+endif ()
 
 include(AddLLVM)
 include(AddMLIR)
@@ -34,14 +34,14 @@ target_compile_features(toy_common INTERFACE cxx_std_20)
 # Disable warnings (only show errors)
 if (MSVC)
     target_compile_options(toy_common INTERFACE /w)
-else()
+else ()
     target_compile_options(toy_common INTERFACE -w)
-endif()
+endif ()
 
 # Prefer lld when using Clang
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_link_options(toy_common INTERFACE -fuse-ld=lld)
-endif()
+endif ()
 
 # Link minimal MLIR pieces every chapter needs
 target_link_libraries(toy_common INTERFACE
@@ -59,38 +59,28 @@ target_include_directories(toy_common INTERFACE
 # 3) Helper function: add_toy_chapter(NAME <name> SOURCES ... [LIBS ...])
 # ============================================================
 # 3) Helper function: add_toy_chapter(NAME <name> SOURCES ... [LIBS ...])
-function(add_toy_chapter)
+add_custom_target(Toy)
+set_target_properties(Toy PROPERTIES FOLDER "MLIR/Examples")
+
+macro(add_toy_chapter name)
+    add_dependencies(Toy ${name})
     set(options)
-    set(oneValueArgs NAME)
+    set(oneValueArgs)
     set(multiValueArgs SOURCES LIBS DEPENDS)
-
-    cmake_parse_arguments(TOY "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
-    if (NOT TOY_NAME)
-        message(FATAL_ERROR "add_toy_chapter: missing required argument NAME")
-    endif()
-    if (NOT TOY_SOURCES)
-        message(FATAL_ERROR "add_toy_chapter: missing required SOURCES list")
-    endif()
-
-    add_executable(${TOY_NAME} ${TOY_SOURCES})
-
-    # ✅ Use the chapter's own include/ dir (this file is called from chapterN/)
+    cmake_parse_arguments(CHAP "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+    add_executable(${name} ${CHAP_SOURCES})
+    if (CHAP_DEPENDS)
+        add_dependencies(${name} ${CHAP_DEPENDS})
+    endif ()
     if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/include")
-        target_include_directories(${TOY_NAME} PRIVATE
-                "${CMAKE_CURRENT_SOURCE_DIR}/include"
-                "${CMAKE_CURRENT_BINARY_DIR}/include"
-        )
-    endif()
-
-    target_link_libraries(${TOY_NAME} PRIVATE toy_common)
-
-    if (TOY_LIBS)
-        target_link_libraries(${TOY_NAME} PRIVATE ${TOY_LIBS})
-    endif()
-
-    message(STATUS "Added Toy chapter target: ${TOY_NAME} (includes: ${CMAKE_CURRENT_SOURCE_DIR}/include)")
-endfunction()
+        target_include_directories(${name} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+    endif ()
+    target_include_directories(${name} PRIVATE
+            "${CMAKE_CURRENT_BINARY_DIR}"
+            "${CMAKE_CURRENT_BINARY_DIR}/include"
+    )
+    target_link_libraries(${name} PRIVATE toy_common ${CHAP_LIBS})
+endmacro()
 
 # ============================================================
 # 4) Add all chapters
