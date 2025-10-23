@@ -6,6 +6,23 @@ project(Toy LANGUAGES CXX)
 # ============================================================
 find_package(MLIR REQUIRED CONFIG)
 
+# Make MLIR/LLVM CMake modules (TableGen helpers) visible everywhere
+# Prefer the exported *_CMAKE_DIR vars if present; fall back to *_DIR.
+if (DEFINED MLIR_CMAKE_DIR)
+    list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
+else()
+    list(APPEND CMAKE_MODULE_PATH "${MLIR_DIR}")
+endif()
+
+if (DEFINED LLVM_CMAKE_DIR)
+    list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+else()
+    list(APPEND CMAKE_MODULE_PATH "${LLVM_DIR}")
+endif()
+
+include(AddLLVM)
+include(AddMLIR)
+
 # ============================================================
 # 2) Shared configuration target (inherits common settings)
 # ============================================================
@@ -45,7 +62,8 @@ target_include_directories(toy_common INTERFACE
 function(add_toy_chapter)
     set(options)
     set(oneValueArgs NAME)
-    set(multiValueArgs SOURCES LIBS)
+    set(multiValueArgs SOURCES LIBS DEPENDS)
+
     cmake_parse_arguments(TOY "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     if (NOT TOY_NAME)
@@ -61,6 +79,7 @@ function(add_toy_chapter)
     if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/include")
         target_include_directories(${TOY_NAME} PRIVATE
                 "${CMAKE_CURRENT_SOURCE_DIR}/include"
+                "${CMAKE_CURRENT_BINARY_DIR}/include"
         )
     endif()
 
