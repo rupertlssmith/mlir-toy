@@ -25,6 +25,7 @@ add_toy_chapter(toyc-ch5
     src/mlir/MLIRGen.cpp
     src/mlir/ToyCombine.cpp
     src/mlir/ShapeInferencePass.cpp
+    src/mlir/LowerToAffineLoops.cpp
     src/parser/AST.cpp
   LIBS
     # Optional: add extra MLIR/LLVM libs this chapter needs
