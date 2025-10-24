@@ -2,7 +2,7 @@
 
 There is a Toy language tutorial included with MLIR. This project extracts that
 code as a standalone repository, with some example programs and full
-instructions on how to build an run it.
+instructions on how to build an run it. https://mlir.llvm.org/docs/Tutorials/Toy/
 
 ## To use the interactive Docker container (recommended)
 
