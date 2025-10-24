@@ -6,7 +6,7 @@ instructions on how to build an run it. https://mlir.llvm.org/docs/Tutorials/Toy
 
 ## To use the interactive Docker container (recommended)
 
-This step will take some time top build the docker image, as it checks out the 
+This step will take some time to build the docker image, as it checks out the 
 LLVM git and builds it. This is set up to support interactive development inside
 the container, and will detect and run as your current user.
 
@@ -25,7 +25,7 @@ To build the docker image:
 
     docker build -t mlir-dev:bookworm .
 
-Top run an interactive session as your user inside the docker container:
+To run an interactive session as your user inside the docker container:
 
     docker run -it --rm -v "$PWD":/work mlir-dev:bookworm bash
 
