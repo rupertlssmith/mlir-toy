@@ -13,6 +13,16 @@
 
 #include "toy/Dialect.h"
 
+#include <algorithm>
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <string>
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/Hashing.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Casting.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -28,16 +38,6 @@
 #include "mlir/Interfaces/FunctionImplementation.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Transforms/InliningUtils.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/Hashing.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Casting.h"
-#include <algorithm>
-#include <cassert>
-#include <cstddef>
-#include <cstdint>
-#include <string>
 
 using namespace mlir;
 using namespace mlir::toy;
@@ -58,20 +58,13 @@ struct ToyInlinerInterface : public DialectInlinerInterface {
     //===--------------------------------------------------------------------===//
 
     /// All call operations within toy can be inlined.
-    bool isLegalToInline(Operation *call, Operation *callable,
-                         bool wouldBeCloned) const final {
-        return true;
-    }
+    bool isLegalToInline(Operation *call, Operation *callable, bool wouldBeCloned) const final { return true; }
 
     /// All operations within toy can be inlined.
-    bool isLegalToInline(Operation *, Region *, bool, IRMapping &) const final {
-        return true;
-    }
+    bool isLegalToInline(Operation *, Region *, bool, IRMapping &) const final { return true; }
 
     // All functions within toy can be inlined.
-    bool isLegalToInline(Region *, Region *, bool, IRMapping &) const final {
-        return true;
-    }
+    bool isLegalToInline(Region *, Region *, bool, IRMapping &) const final { return true; }
 
     //===--------------------------------------------------------------------===//
     // Transformation Hooks
@@ -94,8 +87,7 @@ struct ToyInlinerInterface : public DialectInlinerInterface {
     /// operation that takes 'input' as the only operand, and produces a single
     /// result of 'resultType'. If a conversion can not be generated, nullptr
     /// should be returned.
-    Operation *materializeCallConversion(OpBuilder &builder, Value input,
-                                         Type resultType,
+    Operation *materializeCallConversion(OpBuilder &builder, Value input, Type resultType,
                                          Location conversionLoc) const final {
         return builder.create<CastOp>(conversionLoc, resultType, input);
     }
@@ -107,21 +99,18 @@ struct ToyInlinerInterface : public DialectInlinerInterface {
 
 /// A generalized parser for binary operations. This parses the different forms
 /// of 'printBinaryOp' below.
-static mlir::ParseResult parseBinaryOp(mlir::OpAsmParser &parser,
-                                       mlir::OperationState &result) {
+static mlir::ParseResult parseBinaryOp(mlir::OpAsmParser &parser, mlir::OperationState &result) {
     SmallVector<mlir::OpAsmParser::UnresolvedOperand, 2> operands;
     SMLoc operandsLoc = parser.getCurrentLocation();
     Type type;
     if (parser.parseOperandList(operands, /*requiredOperandCount=*/2) ||
-        parser.parseOptionalAttrDict(result.attributes) ||
-        parser.parseColonType(type))
+        parser.parseOptionalAttrDict(result.attributes) || parser.parseColonType(type))
         return mlir::failure();
 
     // If the type is a function type, it contains the input and result types of
     // this operation.
     if (FunctionType funcType = llvm::dyn_cast<FunctionType>(type)) {
-        if (parser.resolveOperands(operands, funcType.getInputs(), operandsLoc,
-                                   result.operands))
+        if (parser.resolveOperands(operands, funcType.getInputs(), operandsLoc, result.operands))
             return mlir::failure();
         result.addTypes(funcType.getResults());
         return mlir::success();
@@ -143,8 +132,7 @@ static void printBinaryOp(mlir::OpAsmPrinter &printer, mlir::Operation *op) {
 
     // If all of the types are the same, print the type directly.
     Type resultType = *op->result_type_begin();
-    if (llvm::all_of(op->getOperandTypes(),
-                     [=](Type type) { return type == resultType; })) {
+    if (llvm::all_of(op->getOperandTypes(), [=](Type type) { return type == resultType; })) {
         printer << resultType;
         return;
     }
@@ -160,8 +148,7 @@ static void printBinaryOp(mlir::OpAsmPrinter &printer, mlir::Operation *op) {
 /// Build a constant operation.
 /// The builder is passed as an argument, so is the state that this method is
 /// expected to fill in order to build the operation.
-void ConstantOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                       double value) {
+void ConstantOp::build(mlir::OpBuilder &builder, mlir::OperationState &state, double value) {
     auto dataType = RankedTensorType::get({}, builder.getF64Type());
     auto dataAttribute = DenseElementsAttr::get(dataType, value);
     ConstantOp::build(builder, state, dataType, dataAttribute);
@@ -174,11 +161,9 @@ void ConstantOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
 /// or `false` on success. This allows for easily chaining together a set of
 /// parser rules. These rules are used to populate an `mlir::OperationState`
 /// similarly to the `build` methods described above.
-mlir::ParseResult ConstantOp::parse(mlir::OpAsmParser &parser,
-                                    mlir::OperationState &result) {
+mlir::ParseResult ConstantOp::parse(mlir::OpAsmParser &parser, mlir::OperationState &result) {
     mlir::DenseElementsAttr value;
-    if (parser.parseOptionalAttrDict(result.attributes) ||
-        parser.parseAttribute(value, "value", result.attributes))
+    if (parser.parseOptionalAttrDict(result.attributes) || parser.parseAttribute(value, "value", result.attributes))
         return failure();
 
     result.addTypes(value.getType());
@@ -194,15 +179,13 @@ void ConstantOp::print(mlir::OpAsmPrinter &printer) {
 }
 
 /// Verify that the given attribute value is valid for the given type.
-static llvm::LogicalResult verifyConstantForType(mlir::Type type,
-                                                 mlir::Attribute opaqueValue,
-                                                 mlir::Operation *op) {
+static llvm::LogicalResult verifyConstantForType(mlir::Type type, mlir::Attribute opaqueValue, mlir::Operation *op) {
     if (llvm::isa<mlir::TensorType>(type)) {
         // Check that the value is an elements attribute.
         auto attrValue = llvm::dyn_cast<mlir::DenseFPElementsAttr>(opaqueValue);
         if (!attrValue)
             return op->emitError("constant of TensorType must be initialized by "
-                       "a DenseFPElementsAttr, got ")
+                                 "a DenseFPElementsAttr, got ")
                    << opaqueValue;
 
         // If the return type of the constant is not an unranked tensor, the shape
@@ -216,17 +199,15 @@ static llvm::LogicalResult verifyConstantForType(mlir::Type type,
         auto attrType = llvm::cast<mlir::RankedTensorType>(attrValue.getType());
         if (attrType.getRank() != resultType.getRank()) {
             return op->emitOpError("return type must match the one of the attached "
-                       "value attribute: ")
+                                   "value attribute: ")
                    << attrType.getRank() << " != " << resultType.getRank();
         }
 
         // Check that each of the dimensions match between the two types.
         for (int dim = 0, dimE = attrType.getRank(); dim < dimE; ++dim) {
             if (attrType.getShape()[dim] != resultType.getShape()[dim]) {
-                return op->emitOpError(
-                           "return type shape mismatches its attribute at dimension ")
-                       << dim << ": " << attrType.getShape()[dim]
-                       << " != " << resultType.getShape()[dim];
+                return op->emitOpError("return type shape mismatches its attribute at dimension ")
+                       << dim << ": " << attrType.getShape()[dim] << " != " << resultType.getShape()[dim];
             }
         }
         return mlir::success();
@@ -238,7 +219,7 @@ static llvm::LogicalResult verifyConstantForType(mlir::Type type,
     auto attrValue = llvm::dyn_cast<ArrayAttr>(opaqueValue);
     if (!attrValue || attrValue.getValue().size() != resultElementTypes.size())
         return op->emitError("constant of StructType must be initialized by an "
-                   "ArrayAttr with the same number of elements, got ")
+                             "ArrayAttr with the same number of elements, got ")
                << opaqueValue;
 
     // Check that each of the elements are valid.
@@ -251,9 +232,7 @@ static llvm::LogicalResult verifyConstantForType(mlir::Type type,
 
 /// Verifier for the constant operation. This corresponds to the `::verify(...)`
 /// in the op definition.
-llvm::LogicalResult ConstantOp::verify() {
-    return verifyConstantForType(getResult().getType(), getValue(), *this);
-}
+llvm::LogicalResult ConstantOp::verify() { return verifyConstantForType(getResult().getType(), getValue(), *this); }
 
 llvm::LogicalResult StructConstantOp::verify() {
     return verifyConstantForType(getResult().getType(), getValue(), *this);
@@ -261,22 +240,18 @@ llvm::LogicalResult StructConstantOp::verify() {
 
 /// Infer the output shape of the ConstantOp, this is required by the shape
 /// inference interface.
-void ConstantOp::inferShapes() {
-    getResult().setType(cast<TensorType>(getValue().getType()));
-}
+void ConstantOp::inferShapes() { getResult().setType(cast<TensorType>(getValue().getType())); }
 
 //===----------------------------------------------------------------------===//
 // AddOp
 //===----------------------------------------------------------------------===//
 
-void AddOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                  mlir::Value lhs, mlir::Value rhs) {
+void AddOp::build(mlir::OpBuilder &builder, mlir::OperationState &state, mlir::Value lhs, mlir::Value rhs) {
     state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
     state.addOperands({lhs, rhs});
 }
 
-mlir::ParseResult AddOp::parse(mlir::OpAsmParser &parser,
-                               mlir::OperationState &result) {
+mlir::ParseResult AddOp::parse(mlir::OpAsmParser &parser, mlir::OperationState &result) {
     return parseBinaryOp(parser, result);
 }
 
@@ -313,58 +288,46 @@ bool CastOp::areCastCompatible(TypeRange inputs, TypeRange outputs) {
 // FuncOp
 //===----------------------------------------------------------------------===//
 
-void FuncOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                   llvm::StringRef name, mlir::FunctionType type,
+void FuncOp::build(mlir::OpBuilder &builder, mlir::OperationState &state, llvm::StringRef name, mlir::FunctionType type,
                    llvm::ArrayRef<mlir::NamedAttribute> attrs) {
     // FunctionOpInterface provides a convenient `build` method that will populate
     // the state of our FuncOp, and create an entry block.
     buildWithEntryBlock(builder, state, name, type, attrs, type.getInputs());
 }
 
-mlir::ParseResult FuncOp::parse(mlir::OpAsmParser &parser,
-                                mlir::OperationState &result) {
+mlir::ParseResult FuncOp::parse(mlir::OpAsmParser &parser, mlir::OperationState &result) {
     // Dispatch to the FunctionOpInterface provided utility method that parses the
     // function operation.
-    auto buildFuncType =
-            [](mlir::Builder &builder, llvm::ArrayRef<mlir::Type> argTypes,
-               llvm::ArrayRef<mlir::Type> results,
-               mlir::function_interface_impl::VariadicFlag,
-               std::string &) {
-        return builder.getFunctionType(argTypes, results);
-    };
+    auto buildFuncType = [](mlir::Builder &builder, llvm::ArrayRef<mlir::Type> argTypes,
+                            llvm::ArrayRef<mlir::Type> results, mlir::function_interface_impl::VariadicFlag,
+                            std::string &) { return builder.getFunctionType(argTypes, results); };
 
     return mlir::function_interface_impl::parseFunctionOp(
-        parser, result, /*allowVariadic=*/false,
-        getFunctionTypeAttrName(result.name), buildFuncType,
-        getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
+            parser, result, /*allowVariadic=*/false, getFunctionTypeAttrName(result.name), buildFuncType,
+            getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
 }
 
 void FuncOp::print(mlir::OpAsmPrinter &p) {
     // Dispatch to the FunctionOpInterface provided utility method that prints the
     // function operation.
-    mlir::function_interface_impl::printFunctionOp(
-        p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
-        getArgAttrsAttrName(), getResAttrsAttrName());
+    mlir::function_interface_impl::printFunctionOp(p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
+                                                   getArgAttrsAttrName(), getResAttrsAttrName());
 }
 
 //===----------------------------------------------------------------------===//
 // GenericCallOp
 //===----------------------------------------------------------------------===//
 
-void GenericCallOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                          mlir::Type resultType, StringRef callee,
-                          ArrayRef<mlir::Value> arguments) {
+void GenericCallOp::build(mlir::OpBuilder &builder, mlir::OperationState &state, mlir::Type resultType,
+                          StringRef callee, ArrayRef<mlir::Value> arguments) {
     state.addTypes(resultType);
     state.addOperands(arguments);
-    state.addAttribute("callee",
-                       mlir::SymbolRefAttr::get(builder.getContext(), callee));
+    state.addAttribute("callee", mlir::SymbolRefAttr::get(builder.getContext(), callee));
 }
 
 /// Return the callee of the generic call operation, this is required by the
 /// call interface.
-CallInterfaceCallable GenericCallOp::getCallableForCallee() {
-    return (*this)->getAttrOfType<SymbolRefAttr>("callee");
-}
+CallInterfaceCallable GenericCallOp::getCallableForCallee() { return (*this)->getAttrOfType<SymbolRefAttr>("callee"); }
 
 /// Set the callee for the generic call operation, this is required by the call
 /// interface.
@@ -378,22 +341,18 @@ Operation::operand_range GenericCallOp::getArgOperands() { return getInputs(); }
 
 /// Get the argument operands to the called function as a mutable range, this is
 /// required by the call interface.
-MutableOperandRange GenericCallOp::getArgOperandsMutable() {
-    return getInputsMutable();
-}
+MutableOperandRange GenericCallOp::getArgOperandsMutable() { return getInputsMutable(); }
 
 //===----------------------------------------------------------------------===//
 // MulOp
 //===----------------------------------------------------------------------===//
 
-void MulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                  mlir::Value lhs, mlir::Value rhs) {
+void MulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state, mlir::Value lhs, mlir::Value rhs) {
     state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
     state.addOperands({lhs, rhs});
 }
 
-mlir::ParseResult MulOp::parse(mlir::OpAsmParser &parser,
-                               mlir::OperationState &result) {
+mlir::ParseResult MulOp::parse(mlir::OpAsmParser &parser, mlir::OperationState &result) {
     return parseBinaryOp(parser, result);
 }
 
@@ -419,9 +378,8 @@ llvm::LogicalResult ReturnOp::verify() {
     // The operand number and types must match the function signature.
     const auto &results = function.getFunctionType().getResults();
     if (getNumOperands() != results.size())
-        return emitOpError() << "does not return the same number of values ("
-               << getNumOperands() << ") as the enclosing function ("
-               << results.size() << ")";
+        return emitOpError() << "does not return the same number of values (" << getNumOperands()
+                             << ") as the enclosing function (" << results.size() << ")";
 
     // If the operation does not have an input, we are done.
     if (!hasOperand())
@@ -435,17 +393,15 @@ llvm::LogicalResult ReturnOp::verify() {
         llvm::isa<mlir::UnrankedTensorType>(resultType))
         return mlir::success();
 
-    return emitError() << "type of return operand (" << inputType
-           << ") doesn't match function result type (" << resultType
-           << ")";
+    return emitError() << "type of return operand (" << inputType << ") doesn't match function result type ("
+                       << resultType << ")";
 }
 
 //===----------------------------------------------------------------------===//
 // StructAccessOp
 //===----------------------------------------------------------------------===//
 
-void StructAccessOp::build(mlir::OpBuilder &b, mlir::OperationState &state,
-                           mlir::Value input, size_t index) {
+void StructAccessOp::build(mlir::OpBuilder &b, mlir::OperationState &state, mlir::Value input, size_t index) {
     // Extract the result type from the input type.
     StructType structTy = llvm::cast<StructType>(input.getType());
     assert(index < structTy.getNumElementTypes());
@@ -459,12 +415,11 @@ llvm::LogicalResult StructAccessOp::verify() {
     StructType structTy = llvm::cast<StructType>(getInput().getType());
     size_t indexValue = getIndex();
     if (indexValue >= structTy.getNumElementTypes())
-        return emitOpError()
-               << "index should be within the range of the input struct type";
+        return emitOpError() << "index should be within the range of the input struct type";
     mlir::Type resultType = getResult().getType();
     if (resultType != structTy.getElementTypes()[indexValue])
         return emitOpError() << "must have the same result type as the struct "
-               "element referred to by the index";
+                                "element referred to by the index";
     return mlir::success();
 }
 
@@ -472,8 +427,7 @@ llvm::LogicalResult StructAccessOp::verify() {
 // TransposeOp
 //===----------------------------------------------------------------------===//
 
-void TransposeOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value value) {
+void TransposeOp::build(mlir::OpBuilder &builder, mlir::OperationState &state, mlir::Value value) {
     state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
     state.addOperands(value);
 }
@@ -491,10 +445,8 @@ llvm::LogicalResult TransposeOp::verify() {
         return mlir::success();
 
     auto inputShape = inputType.getShape();
-    if (!std::equal(inputShape.begin(), inputShape.end(),
-                    resultType.getShape().rbegin())) {
-        return emitError()
-               << "expected result shape to be a transpose of the input";
+    if (!std::equal(inputShape.begin(), inputShape.end(), resultType.getShape().rbegin())) {
+        return emitError() << "expected result shape to be a transpose of the input";
     }
     return mlir::success();
 }
@@ -515,9 +467,7 @@ namespace mlir {
                 using KeyTy = llvm::ArrayRef<mlir::Type>;
 
                 /// A constructor for the type storage instance.
-                StructTypeStorage(llvm::ArrayRef<mlir::Type> elementTypes)
-                    : elementTypes(elementTypes) {
-                }
+                StructTypeStorage(llvm::ArrayRef<mlir::Type> elementTypes) : elementTypes(elementTypes) {}
 
                 /// Define the comparison function for the key type with the current storage
                 /// instance. This is used when constructing a new instance to ensure that we
@@ -528,31 +478,25 @@ namespace mlir {
                 /// instances of the storage, see the `StructType::get` method.
                 /// Note: This method isn't necessary as both llvm::ArrayRef and mlir::Type
                 /// have hash functions available, so we could just omit this entirely.
-                static llvm::hash_code hashKey(const KeyTy &key) {
-                    return llvm::hash_value(key);
-                }
+                static llvm::hash_code hashKey(const KeyTy &key) { return llvm::hash_value(key); }
 
                 /// Define a construction function for the key type from a set of parameters.
                 /// These parameters will be provided when constructing the storage instance
                 /// itself.
                 /// Note: This method isn't necessary because KeyTy can be directly
                 /// constructed with the given parameters.
-                static KeyTy getKey(llvm::ArrayRef<mlir::Type> elementTypes) {
-                    return KeyTy(elementTypes);
-                }
+                static KeyTy getKey(llvm::ArrayRef<mlir::Type> elementTypes) { return KeyTy(elementTypes); }
 
                 /// Define a construction method for creating a new instance of this storage.
                 /// This method takes an instance of a storage allocator, and an instance of a
                 /// `KeyTy`. The given allocator must be used for *all* necessary dynamic
                 /// allocations used to create the type storage and its internal.
-                static StructTypeStorage *construct(mlir::TypeStorageAllocator &allocator,
-                                                    const KeyTy &key) {
+                static StructTypeStorage *construct(mlir::TypeStorageAllocator &allocator, const KeyTy &key) {
                     // Copy the elements from the provided `KeyTy` into the allocator.
                     llvm::ArrayRef<mlir::Type> elementTypes = allocator.copyInto(key);
 
                     // Allocate the storage instance and construct it.
-                    return new(allocator.allocate<StructTypeStorage>())
-                            StructTypeStorage(elementTypes);
+                    return new (allocator.allocate<StructTypeStorage>()) StructTypeStorage(elementTypes);
                 }
 
                 /// The following field contains the element types of the struct.
@@ -606,7 +550,7 @@ mlir::Type ToyDialect::parseType(mlir::DialectAsmParser &parser) const {
         // Check that the type is either a TensorType or another StructType.
         if (!llvm::isa<mlir::TensorType, StructType>(elementType)) {
             parser.emitError(typeLoc, "element type for a struct must either "
-                             "be a TensorType or a StructType, got: ")
+                                      "be a TensorType or a StructType, got: ")
                     << elementType;
             return Type();
         }
@@ -622,8 +566,7 @@ mlir::Type ToyDialect::parseType(mlir::DialectAsmParser &parser) const {
 }
 
 /// Print an instance of a type registered to the toy dialect.
-void ToyDialect::printType(mlir::Type type,
-                           mlir::DialectAsmPrinter &printer) const {
+void ToyDialect::printType(mlir::Type type, mlir::DialectAsmPrinter &printer) const {
     // Currently the only toy type is a struct type.
     StructType structType = llvm::cast<StructType>(type);
 
@@ -650,18 +593,14 @@ void ToyDialect::initialize() {
     addOperations<
 #define GET_OP_LIST
 #include "toy/Ops.cpp.inc"
-    >();
+            >();
     addInterfaces<ToyInlinerInterface>();
     addTypes<StructType>();
 }
 
-mlir::Operation *ToyDialect::materializeConstant(mlir::OpBuilder &builder,
-                                                 mlir::Attribute value,
-                                                 mlir::Type type,
+mlir::Operation *ToyDialect::materializeConstant(mlir::OpBuilder &builder, mlir::Attribute value, mlir::Type type,
                                                  mlir::Location loc) {
     if (llvm::isa<StructType>(type))
-        return builder.create<StructConstantOp>(loc, type,
-                                                llvm::cast<mlir::ArrayAttr>(value));
-    return builder.create<ConstantOp>(loc, type,
-                                      llvm::cast<mlir::DenseElementsAttr>(value));
+        return builder.create<StructConstantOp>(loc, type, llvm::cast<mlir::ArrayAttr>(value));
+    return builder.create<ConstantOp>(loc, type, llvm::cast<mlir::DenseElementsAttr>(value));
 }

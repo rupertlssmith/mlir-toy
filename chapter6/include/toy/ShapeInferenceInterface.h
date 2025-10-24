@@ -18,7 +18,7 @@
 
 namespace mlir {
     namespace toy {
-        /// Include the auto-generated declarations.
+/// Include the auto-generated declarations.
 #include "toy/ShapeInferenceOpInterfaces.h.inc"
     } // namespace toy
 } // namespace mlir

@@ -22,9 +22,9 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include <map>
+#include <optional>
 #include <utility>
 #include <vector>
-#include <optional>
 
 namespace toy {
     /// This is a simple recursive parser for the Toy language. It produces a well
@@ -35,8 +35,7 @@ namespace toy {
     class Parser {
     public:
         /// Create a Parser for the supplied lexer.
-        Parser(Lexer &lexer) : lexer(lexer) {
-        }
+        Parser(Lexer &lexer) : lexer(lexer) {}
 
         /// Parse a full Module. A module is a list of function definitions.
         std::unique_ptr<ModuleAST> parseModule() {
@@ -66,7 +65,7 @@ namespace toy {
             lexer.consume(tok_return);
 
             // return takes an optional argument
-            std::optional<std::unique_ptr<ExprAST> > expr;
+            std::optional<std::unique_ptr<ExprAST>> expr;
             if (lexer.getCurToken() != ';') {
                 expr = parseExpression();
                 if (!expr)
@@ -79,8 +78,7 @@ namespace toy {
         /// numberexpr ::= number
         std::unique_ptr<ExprAST> parseNumberExpr() {
             auto loc = lexer.getLastLocation();
-            auto result =
-                    std::make_unique<NumberExprAST>(std::move(loc), lexer.getValue());
+            auto result = std::make_unique<NumberExprAST>(std::move(loc), lexer.getValue());
             lexer.consume(tok_number);
             return std::move(result);
         }
@@ -93,7 +91,7 @@ namespace toy {
             lexer.consume(Token('['));
 
             // Hold the list of values at this nesting level.
-            std::vector<std::unique_ptr<ExprAST> > values;
+            std::vector<std::unique_ptr<ExprAST>> values;
             // Hold the dimensions for all the nesting inside this level.
             std::vector<int64_t> dims;
             do {
@@ -127,13 +125,11 @@ namespace toy {
 
             /// If there is any nested array, process all of them and ensure that
             /// dimensions are uniform.
-            if (llvm::any_of(values, [](std::unique_ptr<ExprAST> &expr) {
-                return llvm::isa<LiteralExprAST>(expr.get());
-            })) {
+            if (llvm::any_of(values,
+                             [](std::unique_ptr<ExprAST> &expr) { return llvm::isa<LiteralExprAST>(expr.get()); })) {
                 auto *firstLiteral = llvm::dyn_cast<LiteralExprAST>(values.front().get());
                 if (!firstLiteral)
-                    return parseError<ExprAST>("uniform well-nested dimensions",
-                                               "inside literal expression");
+                    return parseError<ExprAST>("uniform well-nested dimensions", "inside literal expression");
 
                 // Append the nested dimensions to the current level
                 auto firstDims = firstLiteral->getDims();
@@ -143,15 +139,12 @@ namespace toy {
                 for (auto &expr: values) {
                     auto *exprLiteral = llvm::cast<LiteralExprAST>(expr.get());
                     if (!exprLiteral)
-                        return parseError<ExprAST>("uniform well-nested dimensions",
-                                                   "inside literal expression");
+                        return parseError<ExprAST>("uniform well-nested dimensions", "inside literal expression");
                     if (exprLiteral->getDims() != firstDims)
-                        return parseError<ExprAST>("uniform well-nested dimensions",
-                                                   "inside literal expression");
+                        return parseError<ExprAST>("uniform well-nested dimensions", "inside literal expression");
                 }
             }
-            return std::make_unique<LiteralExprAST>(std::move(loc), std::move(values),
-                                                    std::move(dims));
+            return std::make_unique<LiteralExprAST>(std::move(loc), std::move(values), std::move(dims));
         }
 
         /// parenexpr ::= '(' expression ')'
@@ -181,7 +174,7 @@ namespace toy {
 
             // This is a function call.
             lexer.consume(Token('('));
-            std::vector<std::unique_ptr<ExprAST> > args;
+            std::vector<std::unique_ptr<ExprAST>> args;
             if (lexer.getCurToken() != ')') {
                 while (true) {
                     if (auto arg = parseExpression())
@@ -219,8 +212,7 @@ namespace toy {
         std::unique_ptr<ExprAST> parsePrimary() {
             switch (lexer.getCurToken()) {
                 default:
-                    llvm::errs() << "unknown token '" << lexer.getCurToken()
-                            << "' when expecting an expression\n";
+                    llvm::errs() << "unknown token '" << lexer.getCurToken() << "' when expecting an expression\n";
                     return nullptr;
                 case tok_identifier:
                     return parseIdentifierExpr();
@@ -241,8 +233,7 @@ namespace toy {
         /// argument indicates the precedence of the current binary operator.
         ///
         /// binoprhs ::= ('+' primary)*
-        std::unique_ptr<ExprAST> parseBinOpRHS(int exprPrec,
-                                               std::unique_ptr<ExprAST> lhs) {
+        std::unique_ptr<ExprAST> parseBinOpRHS(int exprPrec, std::unique_ptr<ExprAST> lhs) {
             // If this is a binop, find its precedence.
             while (true) {
                 int tokPrec = getTokPrecedence();
@@ -272,8 +263,7 @@ namespace toy {
                 }
 
                 // Merge lhs/RHS.
-                lhs = std::make_unique<BinaryExprAST>(std::move(loc), binOp,
-                                                      std::move(lhs), std::move(rhs));
+                lhs = std::make_unique<BinaryExprAST>(std::move(loc), binOp, std::move(lhs), std::move(rhs));
             }
         }
 
@@ -319,8 +309,7 @@ namespace toy {
             lexer.getNextToken(); // eat var
 
             if (lexer.getCurToken() != tok_identifier)
-                return parseError<VarDeclExprAST>("identified",
-                                                  "after 'var' declaration");
+                return parseError<VarDeclExprAST>("identified", "after 'var' declaration");
             std::string id(lexer.getId());
             lexer.getNextToken(); // eat id
 
@@ -335,8 +324,7 @@ namespace toy {
                 type = std::make_unique<VarType>();
             lexer.consume(Token('='));
             auto expr = parseExpression();
-            return std::make_unique<VarDeclExprAST>(std::move(loc), std::move(id),
-                                                    std::move(*type), std::move(expr));
+            return std::make_unique<VarDeclExprAST>(std::move(loc), std::move(id), std::move(*type), std::move(expr));
         }
 
         /// Parse a block: a list of expression separated by semicolons and wrapped in
@@ -411,7 +399,7 @@ namespace toy {
                 return parseError<PrototypeAST>("(", "in prototype");
             lexer.consume(Token('('));
 
-            std::vector<std::unique_ptr<VariableExprAST> > args;
+            std::vector<std::unique_ptr<VariableExprAST>> args;
             if (lexer.getCurToken() != ')') {
                 do {
                     std::string name(lexer.getId());
@@ -423,8 +411,7 @@ namespace toy {
                         break;
                     lexer.consume(Token(','));
                     if (lexer.getCurToken() != tok_identifier)
-                        return parseError<PrototypeAST>(
-                            "identifier", "after ',' in function parameter list");
+                        return parseError<PrototypeAST>("identifier", "after ',' in function parameter list");
                 } while (true);
             }
             if (lexer.getCurToken() != ')')
@@ -432,8 +419,7 @@ namespace toy {
 
             // success.
             lexer.consume(Token(')'));
-            return std::make_unique<PrototypeAST>(std::move(loc), fnName,
-                                                  std::move(args));
+            return std::make_unique<PrototypeAST>(std::move(loc), fnName, std::move(args));
         }
 
         /// Parse a function definition, we expect a prototype initiated with the
@@ -474,9 +460,8 @@ namespace toy {
         template<typename R, typename T, typename U = const char *>
         std::unique_ptr<R> parseError(T &&expected, U &&context = "") {
             auto curToken = lexer.getCurToken();
-            llvm::errs() << "Parse error (" << lexer.getLastLocation().line << ", "
-                    << lexer.getLastLocation().col << "): expected '" << expected
-                    << "' " << context << " but has Token " << curToken;
+            llvm::errs() << "Parse error (" << lexer.getLastLocation().line << ", " << lexer.getLastLocation().col
+                         << "): expected '" << expected << "' " << context << " but has Token " << curToken;
             if (isprint(curToken))
                 llvm::errs() << " '" << (char) curToken << "'";
             llvm::errs() << "\n";

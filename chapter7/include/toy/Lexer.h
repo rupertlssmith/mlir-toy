@@ -60,10 +60,7 @@ namespace toy {
     public:
         /// Create a lexer for the given filename. The filename is kept only for
         /// debugging purpose (attaching a location to a Token).
-        Lexer(std::string filename)
-            : lastLocation(
-                {std::make_shared<std::string>(std::move(filename)), 0, 0}) {
-        }
+        Lexer(std::string filename) : lastLocation({std::make_shared<std::string>(std::move(filename)), 0, 0}) {}
 
         virtual ~Lexer() = default;
 
@@ -215,9 +212,8 @@ namespace toy {
     /// A lexer implementation operating on a buffer in memory.
     class LexerBuffer final : public Lexer {
     public:
-        LexerBuffer(const char *begin, const char *end, std::string filename)
-            : Lexer(std::move(filename)), current(begin), end(end) {
-        }
+        LexerBuffer(const char *begin, const char *end, std::string filename) :
+            Lexer(std::move(filename)), current(begin), end(end) {}
 
     private:
         /// Provide one line at a time to the Lexer, return an empty string when

@@ -13,6 +13,14 @@
 
 #include "toy/Dialect.h"
 
+#include <algorithm>
+#include <cassert>
+#include <cstdint>
+#include <string>
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Casting.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -24,14 +32,6 @@
 #include "mlir/Interfaces/FunctionImplementation.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Transforms/InliningUtils.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/Casting.h"
-#include <algorithm>
-#include <cassert>
-#include <cstdint>
-#include <string>
 
 using namespace mlir;
 using namespace mlir::toy;
@@ -52,20 +52,13 @@ struct ToyInlinerInterface : public DialectInlinerInterface {
     //===--------------------------------------------------------------------===//
 
     /// All call operations within toy can be inlined.
-    bool isLegalToInline(Operation *call, Operation *callable,
-                         bool wouldBeCloned) const final {
-        return true;
-    }
+    bool isLegalToInline(Operation *call, Operation *callable, bool wouldBeCloned) const final { return true; }
 
     /// All operations within toy can be inlined.
-    bool isLegalToInline(Operation *, Region *, bool, IRMapping &) const final {
-        return true;
-    }
+    bool isLegalToInline(Operation *, Region *, bool, IRMapping &) const final { return true; }
 
     // All functions within toy can be inlined.
-    bool isLegalToInline(Region *, Region *, bool, IRMapping &) const final {
-        return true;
-    }
+    bool isLegalToInline(Region *, Region *, bool, IRMapping &) const final { return true; }
 
     //===--------------------------------------------------------------------===//
     // Transformation Hooks
@@ -88,8 +81,7 @@ struct ToyInlinerInterface : public DialectInlinerInterface {
     /// operation that takes 'input' as the only operand, and produces a single
     /// result of 'resultType'. If a conversion can not be generated, nullptr
     /// should be returned.
-    Operation *materializeCallConversion(OpBuilder &builder, Value input,
-                                         Type resultType,
+    Operation *materializeCallConversion(OpBuilder &builder, Value input, Type resultType,
                                          Location conversionLoc) const final {
         return builder.create<CastOp>(conversionLoc, resultType, input);
     }
@@ -105,7 +97,7 @@ void ToyDialect::initialize() {
     addOperations<
 #define GET_OP_LIST
 #include "toy/Ops.cpp.inc"
-    >();
+            >();
     addInterfaces<ToyInlinerInterface>();
 }
 
@@ -115,21 +107,18 @@ void ToyDialect::initialize() {
 
 /// A generalized parser for binary operations. This parses the different forms
 /// of 'printBinaryOp' below.
-static mlir::ParseResult parseBinaryOp(mlir::OpAsmParser &parser,
-                                       mlir::OperationState &result) {
+static mlir::ParseResult parseBinaryOp(mlir::OpAsmParser &parser, mlir::OperationState &result) {
     SmallVector<mlir::OpAsmParser::UnresolvedOperand, 2> operands;
     SMLoc operandsLoc = parser.getCurrentLocation();
     Type type;
     if (parser.parseOperandList(operands, /*requiredOperandCount=*/2) ||
-        parser.parseOptionalAttrDict(result.attributes) ||
-        parser.parseColonType(type))
+        parser.parseOptionalAttrDict(result.attributes) || parser.parseColonType(type))
         return mlir::failure();
 
     // If the type is a function type, it contains the input and result types of
     // this operation.
     if (FunctionType funcType = llvm::dyn_cast<FunctionType>(type)) {
-        if (parser.resolveOperands(operands, funcType.getInputs(), operandsLoc,
-                                   result.operands))
+        if (parser.resolveOperands(operands, funcType.getInputs(), operandsLoc, result.operands))
             return mlir::failure();
         result.addTypes(funcType.getResults());
         return mlir::success();
@@ -151,8 +140,7 @@ static void printBinaryOp(mlir::OpAsmPrinter &printer, mlir::Operation *op) {
 
     // If all of the types are the same, print the type directly.
     Type resultType = *op->result_type_begin();
-    if (llvm::all_of(op->getOperandTypes(),
-                     [=](Type type) { return type == resultType; })) {
+    if (llvm::all_of(op->getOperandTypes(), [=](Type type) { return type == resultType; })) {
         printer << resultType;
         return;
     }
@@ -168,8 +156,7 @@ static void printBinaryOp(mlir::OpAsmPrinter &printer, mlir::Operation *op) {
 /// Build a constant operation.
 /// The builder is passed as an argument, so is the state that this method is
 /// expected to fill in order to build the operation.
-void ConstantOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                       double value) {
+void ConstantOp::build(mlir::OpBuilder &builder, mlir::OperationState &state, double value) {
     auto dataType = RankedTensorType::get({}, builder.getF64Type());
     auto dataAttribute = DenseElementsAttr::get(dataType, value);
     ConstantOp::build(builder, state, dataType, dataAttribute);
@@ -182,11 +169,9 @@ void ConstantOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
 /// or `false` on success. This allows for easily chaining together a set of
 /// parser rules. These rules are used to populate an `mlir::OperationState`
 /// similarly to the `build` methods described above.
-mlir::ParseResult ConstantOp::parse(mlir::OpAsmParser &parser,
-                                    mlir::OperationState &result) {
+mlir::ParseResult ConstantOp::parse(mlir::OpAsmParser &parser, mlir::OperationState &result) {
     mlir::DenseElementsAttr value;
-    if (parser.parseOptionalAttrDict(result.attributes) ||
-        parser.parseAttribute(value, "value", result.attributes))
+    if (parser.parseOptionalAttrDict(result.attributes) || parser.parseAttribute(value, "value", result.attributes))
         return failure();
 
     result.addTypes(value.getType());
@@ -215,17 +200,15 @@ llvm::LogicalResult ConstantOp::verify() {
     auto attrType = llvm::cast<mlir::RankedTensorType>(getValue().getType());
     if (attrType.getRank() != resultType.getRank()) {
         return emitOpError("return type must match the one of the attached value "
-                   "attribute: ")
+                           "attribute: ")
                << attrType.getRank() << " != " << resultType.getRank();
     }
 
     // Check that each of the dimensions match between the two types.
     for (int dim = 0, dimE = attrType.getRank(); dim < dimE; ++dim) {
         if (attrType.getShape()[dim] != resultType.getShape()[dim]) {
-            return emitOpError(
-                       "return type shape mismatches its attribute at dimension ")
-                   << dim << ": " << attrType.getShape()[dim]
-                   << " != " << resultType.getShape()[dim];
+            return emitOpError("return type shape mismatches its attribute at dimension ")
+                   << dim << ": " << attrType.getShape()[dim] << " != " << resultType.getShape()[dim];
         }
     }
     return mlir::success();
@@ -235,14 +218,12 @@ llvm::LogicalResult ConstantOp::verify() {
 // AddOp
 //===----------------------------------------------------------------------===//
 
-void AddOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                  mlir::Value lhs, mlir::Value rhs) {
+void AddOp::build(mlir::OpBuilder &builder, mlir::OperationState &state, mlir::Value lhs, mlir::Value rhs) {
     state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
     state.addOperands({lhs, rhs});
 }
 
-mlir::ParseResult AddOp::parse(mlir::OpAsmParser &parser,
-                               mlir::OperationState &result) {
+mlir::ParseResult AddOp::parse(mlir::OpAsmParser &parser, mlir::OperationState &result) {
     return parseBinaryOp(parser, result);
 }
 
@@ -279,58 +260,47 @@ bool CastOp::areCastCompatible(TypeRange inputs, TypeRange outputs) {
 // FuncOp
 //===----------------------------------------------------------------------===//
 
-void FuncOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                   llvm::StringRef name, mlir::FunctionType type,
+void FuncOp::build(mlir::OpBuilder &builder, mlir::OperationState &state, llvm::StringRef name, mlir::FunctionType type,
                    llvm::ArrayRef<mlir::NamedAttribute> attrs) {
     // FunctionOpInterface provides a convenient `build` method that will populate
     // the state of our FuncOp, and create an entry block.
     buildWithEntryBlock(builder, state, name, type, attrs, type.getInputs());
 }
 
-mlir::ParseResult FuncOp::parse(mlir::OpAsmParser &parser,
-                                mlir::OperationState &result) {
+mlir::ParseResult FuncOp::parse(mlir::OpAsmParser &parser, mlir::OperationState &result) {
     // Dispatch to the FunctionOpInterface provided utility method that parses the
     // function operation.
-    auto buildFuncType =
-            [](mlir::Builder &builder, llvm::ArrayRef<mlir::Type> argTypes,
-               llvm::ArrayRef<mlir::Type> results,
-               mlir::function_interface_impl::VariadicFlag,
-               std::string &) {
-        return builder.getFunctionType(argTypes, results);
-    };
+    auto buildFuncType = [](mlir::Builder &builder, llvm::ArrayRef<mlir::Type> argTypes,
+                            llvm::ArrayRef<mlir::Type> results, mlir::function_interface_impl::VariadicFlag,
+                            std::string &) { return builder.getFunctionType(argTypes, results); };
 
     return mlir::function_interface_impl::parseFunctionOp(
-        parser, result, /*allowVariadic=*/false,
-        getFunctionTypeAttrName(result.name), buildFuncType,
-        getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
+            parser, result, /*allowVariadic=*/false, getFunctionTypeAttrName(result.name), buildFuncType,
+            getArgAttrsAttrName(result.name), getResAttrsAttrName(result.name));
 }
 
 void FuncOp::print(mlir::OpAsmPrinter &p) {
     // Dispatch to the FunctionOpInterface provided utility method that prints the
     // function operation.
-    mlir::function_interface_impl::printFunctionOp(
-        p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
-        getArgAttrsAttrName(), getResAttrsAttrName());
+    mlir::function_interface_impl::printFunctionOp(p, *this, /*isVariadic=*/false, getFunctionTypeAttrName(),
+                                                   getArgAttrsAttrName(), getResAttrsAttrName());
 }
 
 //===----------------------------------------------------------------------===//
 // GenericCallOp
 //===----------------------------------------------------------------------===//
 
-void GenericCallOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                          StringRef callee, ArrayRef<mlir::Value> arguments) {
+void GenericCallOp::build(mlir::OpBuilder &builder, mlir::OperationState &state, StringRef callee,
+                          ArrayRef<mlir::Value> arguments) {
     // Generic call always returns an unranked Tensor initially.
     state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
     state.addOperands(arguments);
-    state.addAttribute("callee",
-                       mlir::SymbolRefAttr::get(builder.getContext(), callee));
+    state.addAttribute("callee", mlir::SymbolRefAttr::get(builder.getContext(), callee));
 }
 
 /// Return the callee of the generic call operation, this is required by the
 /// call interface.
-CallInterfaceCallable GenericCallOp::getCallableForCallee() {
-    return (*this)->getAttrOfType<SymbolRefAttr>("callee");
-}
+CallInterfaceCallable GenericCallOp::getCallableForCallee() { return (*this)->getAttrOfType<SymbolRefAttr>("callee"); }
 
 /// Set the callee for the generic call operation, this is required by the call
 /// interface.
@@ -344,22 +314,18 @@ Operation::operand_range GenericCallOp::getArgOperands() { return getInputs(); }
 
 /// Get the argument operands to the called function as a mutable range, this is
 /// required by the call interface.
-MutableOperandRange GenericCallOp::getArgOperandsMutable() {
-    return getInputsMutable();
-}
+MutableOperandRange GenericCallOp::getArgOperandsMutable() { return getInputsMutable(); }
 
 //===----------------------------------------------------------------------===//
 // MulOp
 //===----------------------------------------------------------------------===//
 
-void MulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                  mlir::Value lhs, mlir::Value rhs) {
+void MulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state, mlir::Value lhs, mlir::Value rhs) {
     state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
     state.addOperands({lhs, rhs});
 }
 
-mlir::ParseResult MulOp::parse(mlir::OpAsmParser &parser,
-                               mlir::OperationState &result) {
+mlir::ParseResult MulOp::parse(mlir::OpAsmParser &parser, mlir::OperationState &result) {
     return parseBinaryOp(parser, result);
 }
 
@@ -385,9 +351,8 @@ llvm::LogicalResult ReturnOp::verify() {
     // The operand number and types must match the function signature.
     const auto &results = function.getFunctionType().getResults();
     if (getNumOperands() != results.size())
-        return emitOpError() << "does not return the same number of values ("
-               << getNumOperands() << ") as the enclosing function ("
-               << results.size() << ")";
+        return emitOpError() << "does not return the same number of values (" << getNumOperands()
+                             << ") as the enclosing function (" << results.size() << ")";
 
     // If the operation does not have an input, we are done.
     if (!hasOperand())
@@ -401,17 +366,15 @@ llvm::LogicalResult ReturnOp::verify() {
         llvm::isa<mlir::UnrankedTensorType>(resultType))
         return mlir::success();
 
-    return emitError() << "type of return operand (" << inputType
-           << ") doesn't match function result type (" << resultType
-           << ")";
+    return emitError() << "type of return operand (" << inputType << ") doesn't match function result type ("
+                       << resultType << ")";
 }
 
 //===----------------------------------------------------------------------===//
 // TransposeOp
 //===----------------------------------------------------------------------===//
 
-void TransposeOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value value) {
+void TransposeOp::build(mlir::OpBuilder &builder, mlir::OperationState &state, mlir::Value value) {
     state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
     state.addOperands(value);
 }
@@ -429,10 +392,8 @@ llvm::LogicalResult TransposeOp::verify() {
         return mlir::success();
 
     auto inputShape = inputType.getShape();
-    if (!std::equal(inputShape.begin(), inputShape.end(),
-                    resultType.getShape().rbegin())) {
-        return emitError()
-               << "expected result shape to be a transpose of the input";
+    if (!std::equal(inputShape.begin(), inputShape.end(), resultType.getShape().rbegin())) {
+        return emitError() << "expected result shape to be a transpose of the input";
     }
     return mlir::success();
 }

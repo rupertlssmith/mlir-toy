@@ -26,13 +26,6 @@
 #include "mlir/IR/Verifier.h"
 #include "toy/Lexer.h"
 
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/ScopedHashTable.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringMap.h"
-#include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/Twine.h"
-#include "llvm/Support/ErrorHandling.h"
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -42,6 +35,13 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/ScopedHashTable.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringMap.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/Twine.h"
+#include "llvm/Support/ErrorHandling.h"
 
 using namespace mlir::toy;
 using namespace toy;
@@ -63,8 +63,7 @@ namespace {
     /// analysis and transformation based on these high level semantics.
     class MLIRGenImpl {
     public:
-        MLIRGenImpl(mlir::MLIRContext &context) : builder(&context) {
-        }
+        MLIRGenImpl(mlir::MLIRContext &context) : builder(&context) {}
 
         /// Public API: convert the AST for a Toy module (source file) to an MLIR
         /// Module operation.
@@ -111,23 +110,19 @@ namespace {
         /// Entering a function creates a new scope, and the function arguments are
         /// added to the mapping. When the processing of a function is terminated, the
         /// scope is destroyed and the mappings created in this scope are dropped.
-        llvm::ScopedHashTable<StringRef, std::pair<mlir::Value, VarDeclExprAST *> >
-        symbolTable;
-        using SymbolTableScopeT =
-        llvm::ScopedHashTableScope<StringRef,
-            std::pair<mlir::Value, VarDeclExprAST *> >;
+        llvm::ScopedHashTable<StringRef, std::pair<mlir::Value, VarDeclExprAST *>> symbolTable;
+        using SymbolTableScopeT = llvm::ScopedHashTableScope<StringRef, std::pair<mlir::Value, VarDeclExprAST *>>;
 
         /// A mapping for the functions that have been code generated to MLIR.
         llvm::StringMap<mlir::toy::FuncOp> functionMap;
 
         /// A mapping for named struct types to the underlying MLIR type and the
         /// original AST node.
-        llvm::StringMap<std::pair<mlir::Type, StructAST *> > structMap;
+        llvm::StringMap<std::pair<mlir::Type, StructAST *>> structMap;
 
         /// Helper conversion for a Toy AST location to an MLIR location.
         mlir::Location loc(const Location &loc) {
-            return mlir::FileLineColLoc::get(builder.getStringAttr(*loc.file), loc.line,
-                                             loc.col);
+            return mlir::FileLineColLoc::get(builder.getStringAttr(*loc.file), loc.line, loc.col);
         }
 
         /// Declare a variable in the current scope, return success if the variable
@@ -142,8 +137,8 @@ namespace {
         /// Create an MLIR type for the given struct.
         llvm::LogicalResult mlirGen(StructAST &str) {
             if (structMap.count(str.getName()))
-                return emitError(loc(str.loc())) << "error: struct type with name `"
-                       << str.getName() << "' already exists";
+                return emitError(loc(str.loc()))
+                       << "error: struct type with name `" << str.getName() << "' already exists";
 
             auto variables = str.getVariables();
             std::vector<mlir::Type> elementTypes;
@@ -152,11 +147,11 @@ namespace {
                 if (variable->getInitVal())
                     return emitError(loc(variable->loc()))
                            << "error: variables within a struct definition must not have "
-                           "initializers";
+                              "initializers";
                 if (!variable->getType().shape.empty())
                     return emitError(loc(variable->loc()))
                            << "error: variables within a struct definition must not have "
-                           "initializers";
+                              "initializers";
 
                 mlir::Type type = getType(variable->getType(), variable->loc());
                 if (!type)
@@ -183,8 +178,7 @@ namespace {
                 argTypes.push_back(type);
             }
             auto funcType = builder.getFunctionType(argTypes, /*results=*/{});
-            return builder.create<mlir::toy::FuncOp>(location, proto.getName(),
-                                                     funcType);
+            return builder.create<mlir::toy::FuncOp>(location, proto.getName(), funcType);
         }
 
         /// Emit a new function and add it to the MLIR module.
@@ -203,8 +197,7 @@ namespace {
             auto protoArgs = funcAST.getProto()->getArgs();
 
             // Declare all the function arguments in the symbol table.
-            for (const auto nameValue:
-                 llvm::zip(protoArgs, entryBlock.getArguments())) {
+            for (const auto nameValue: llvm::zip(protoArgs, entryBlock.getArguments())) {
                 if (failed(declare(*std::get<0>(nameValue), std::get<1>(nameValue))))
                     return nullptr;
             }
@@ -231,9 +224,8 @@ namespace {
             } else if (returnOp.hasOperand()) {
                 // Otherwise, if this return operation has an operand then add a result to
                 // the function.
-                function.setType(
-                    builder.getFunctionType(function.getFunctionType().getInputs(),
-                                            *returnOp.operand_type_begin()));
+                function.setType(builder.getFunctionType(function.getFunctionType().getInputs(),
+                                                         *returnOp.operand_type_begin()));
             }
 
             // If this function isn't main, then set the visibility to private.
@@ -300,9 +292,7 @@ namespace {
                 return std::nullopt;
 
             auto structVars = structAST->getVariables();
-            const auto *it = llvm::find_if(structVars, [&](auto &var) {
-                return var->getName() == name->getName();
-            });
+            const auto *it = llvm::find_if(structVars, [&](auto &var) { return var->getName() == name->getName(); });
             if (it == structVars.end())
                 return std::nullopt;
             return it - structVars.begin();
@@ -361,8 +351,7 @@ namespace {
             if (auto variable = symbolTable.lookup(expr.getName()).first)
                 return variable;
 
-            emitError(loc(expr.loc()), "error: unknown variable '")
-                    << expr.getName() << "'";
+            emitError(loc(expr.loc()), "error: unknown variable '") << expr.getName() << "'";
             return nullptr;
         }
 
@@ -378,8 +367,7 @@ namespace {
             }
 
             // Otherwise, this return operation has zero operands.
-            builder.create<ReturnOp>(location,
-                                     expr ? ArrayRef(expr) : ArrayRef<mlir::Value>());
+            builder.create<ReturnOp>(location, expr ? ArrayRef(expr) : ArrayRef<mlir::Value>());
             return mlir::success();
         }
 
@@ -405,8 +393,7 @@ namespace {
             // The attribute is a vector with a floating point value per element
             // (number) in the array, see `collectData()` below for more details.
             std::vector<double> data;
-            data.reserve(std::accumulate(lit.getDims().begin(), lit.getDims().end(), 1,
-                                         std::multiplies<int>()));
+            data.reserve(std::accumulate(lit.getDims().begin(), lit.getDims().end(), 1, std::multiplies<int>()));
             collectData(lit, data);
 
             // The type of this attribute is tensor of 64-bit floating-point with the
@@ -427,16 +414,14 @@ namespace {
 
             // This is the actual attribute that holds the list of values for this
             // tensor literal.
-            return mlir::DenseElementsAttr::get(dataType,
-                                                llvm::ArrayRef(lit.getValue()));
+            return mlir::DenseElementsAttr::get(dataType, llvm::ArrayRef(lit.getValue()));
         }
 
         /// Emit a constant for a struct literal. It will be emitted as an array of
         /// other literals in an Attribute attached to a `toy.struct_constant`
         /// operation. This function returns the generated constant, along with the
         /// corresponding struct type.
-        std::pair<mlir::ArrayAttr, mlir::Type>
-        getConstantAttr(StructLiteralExprAST &lit) {
+        std::pair<mlir::ArrayAttr, mlir::Type> getConstantAttr(StructLiteralExprAST &lit) {
             std::vector<mlir::Attribute> attrElements;
             std::vector<mlir::Type> typeElements;
 
@@ -521,7 +506,7 @@ namespace {
             if (callee == "transpose") {
                 if (call.getArgs().size() != 1) {
                     emitError(location, "MLIR codegen encountered an error: toy.transpose "
-                              "does not accept multiple arguments");
+                                        "does not accept multiple arguments");
                     return nullptr;
                 }
                 return builder.create<TransposeOp>(location, operands[0]);
@@ -536,8 +521,7 @@ namespace {
                 return nullptr;
             }
             mlir::toy::FuncOp calledFunc = calledFuncIt->second;
-            return builder.create<GenericCallOp>(
-                location, calledFunc.getFunctionType().getResult(0), callee, operands);
+            return builder.create<GenericCallOp>(location, calledFunc.getFunctionType().getResult(0), callee, operands);
         }
 
         /// Emit a print expression. It emits specific operations for two builtins:
@@ -552,9 +536,7 @@ namespace {
         }
 
         /// Emit a constant for a single number (FIXME: semantic? broadcast?)
-        mlir::Value mlirGen(NumberExprAST &num) {
-            return builder.create<ConstantOp>(loc(num.loc()), num.getValue());
-        }
+        mlir::Value mlirGen(NumberExprAST &num) { return builder.create<ConstantOp>(loc(num.loc()), num.getValue()); }
 
         /// Dispatch codegen for the right expression subclass using RTTI.
         mlir::Value mlirGen(ExprAST &expr) {
@@ -573,8 +555,7 @@ namespace {
                     return mlirGen(cast<NumberExprAST>(expr));
                 default:
                     emitError(loc(expr.loc()))
-                            << "MLIR codegen encountered an unhandled expr kind '"
-                            << Twine(expr.getKind()) << "'";
+                            << "MLIR codegen encountered an unhandled expr kind '" << Twine(expr.getKind()) << "'";
                     return nullptr;
             }
         }
@@ -586,8 +567,7 @@ namespace {
         mlir::Value mlirGen(VarDeclExprAST &vardecl) {
             auto *init = vardecl.getInitVal();
             if (!init) {
-                emitError(loc(vardecl.loc()),
-                          "missing initializer in variable declaration");
+                emitError(loc(vardecl.loc()), "missing initializer in variable declaration");
                 return nullptr;
             }
 
@@ -604,10 +584,9 @@ namespace {
                 if (!type)
                     return nullptr;
                 if (type != value.getType()) {
-                    emitError(loc(vardecl.loc()))
-                            << "struct type of initializer is different than the variable "
-                            "declaration. Got "
-                            << value.getType() << ", but expected " << type;
+                    emitError(loc(vardecl.loc())) << "struct type of initializer is different than the variable "
+                                                     "declaration. Got "
+                                                  << value.getType() << ", but expected " << type;
                     return nullptr;
                 }
 
@@ -615,8 +594,7 @@ namespace {
                 // declared with specific shape, we emit a "reshape" operation. It will
                 // get optimized out later as needed.
             } else if (!varType.shape.empty()) {
-                value = builder.create<ReshapeOp>(loc(vardecl.loc()),
-                                                  getType(varType.shape), value);
+                value = builder.create<ReshapeOp>(loc(vardecl.loc()), getType(varType.shape), value);
             }
 
             // Register the value in the symbol table.
@@ -668,8 +646,7 @@ namespace {
             if (!type.name.empty()) {
                 auto it = structMap.find(type.name);
                 if (it == structMap.end()) {
-                    emitError(loc(location))
-                            << "error: unknown struct type '" << type.name << "'";
+                    emitError(loc(location)) << "error: unknown struct type '" << type.name << "'";
                     return nullptr;
                 }
                 return it->second.first;
@@ -682,8 +659,7 @@ namespace {
 
 namespace toy {
     // The public API for codegen.
-    mlir::OwningOpRef<mlir::ModuleOp> mlirGen(mlir::MLIRContext &context,
-                                              ModuleAST &moduleAST) {
+    mlir::OwningOpRef<mlir::ModuleOp> mlirGen(mlir::MLIRContext &context, ModuleAST &moduleAST) {
         return MLIRGenImpl(context).mlirGen(moduleAST);
     }
 } // namespace toy

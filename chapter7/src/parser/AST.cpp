@@ -12,12 +12,12 @@
 
 #include "toy/AST.h"
 
+#include <string>
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
-#include <string>
 
 using namespace toy;
 
@@ -81,23 +81,20 @@ namespace {
 template<typename T>
 static std::string loc(T *node) {
     const auto &loc = node->loc();
-    return (llvm::Twine("@") + *loc.file + ":" + llvm::Twine(loc.line) + ":" +
-            llvm::Twine(loc.col))
-            .str();
+    return (llvm::Twine("@") + *loc.file + ":" + llvm::Twine(loc.line) + ":" + llvm::Twine(loc.col)).str();
 }
 
 // Helper Macro to bump the indentation level and print the leading spaces for
 // the current indentations
-#define INDENT()                                                               \
-  Indent level_(curIndent);                                                    \
-  indent();
+#define INDENT()                                                                                                       \
+    Indent level_(curIndent);                                                                                          \
+    indent();
 
 /// Dispatch to a generic expressions to the appropriate subclass using RTTI
 void ASTDumper::dump(ExprAST *expr) {
     llvm::TypeSwitch<ExprAST *>(expr)
-            .Case<BinaryExprAST, CallExprAST, LiteralExprAST, NumberExprAST,
-                PrintExprAST, ReturnExprAST, StructLiteralExprAST, VarDeclExprAST,
-                VariableExprAST>([&](auto *node) { this->dump(node); })
+            .Case<BinaryExprAST, CallExprAST, LiteralExprAST, NumberExprAST, PrintExprAST, ReturnExprAST,
+                  StructLiteralExprAST, VarDeclExprAST, VariableExprAST>([&](auto *node) { this->dump(node); })
             .Default([&](ExprAST *) {
                 // No match, fallback to a generic message
                 INDENT();
@@ -151,8 +148,7 @@ void printLitHelper(ExprAST *litOrNum) {
 
     // Now print the content, recursing on every element of the list
     llvm::errs() << "[ ";
-    llvm::interleaveComma(literal->getValues(), llvm::errs(),
-                          [&](auto &elt) { printLitHelper(elt.get()); });
+    llvm::interleaveComma(literal->getValues(), llvm::errs(), [&](auto &elt) { printLitHelper(elt.get()); });
     llvm::errs() << "]";
 }
 
@@ -237,8 +233,7 @@ void ASTDumper::dump(PrototypeAST *node) {
     llvm::errs() << "Proto '" << node->getName() << "' " << loc(node) << "\n";
     indent();
     llvm::errs() << "Params: [";
-    llvm::interleaveComma(node->getArgs(), llvm::errs(),
-                          [](auto &arg) { llvm::errs() << arg->getName(); });
+    llvm::interleaveComma(node->getArgs(), llvm::errs(), [](auto &arg) { llvm::errs() << arg->getName(); });
     llvm::errs() << "]\n";
 }
 

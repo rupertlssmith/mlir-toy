@@ -56,8 +56,7 @@ namespace mlir {
         /// 'Type::TypeBase'. It takes as template parameters the concrete type
         /// (StructType), the base class to use (Type), and the storage class
         /// (StructTypeStorage).
-        class StructType : public mlir::Type::TypeBase<StructType, mlir::Type,
-                    detail::StructTypeStorage> {
+        class StructType : public mlir::Type::TypeBase<StructType, mlir::Type, detail::StructTypeStorage> {
         public:
             /// Inherit some necessary constructors from 'TypeBase'.
             using Base::Base;

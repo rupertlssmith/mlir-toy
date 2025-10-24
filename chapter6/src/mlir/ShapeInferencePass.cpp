@@ -11,6 +11,12 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <memory>
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallPtrSet.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/Types.h"
@@ -20,12 +26,6 @@
 #include "toy/Dialect.h"
 #include "toy/Passes.h"
 #include "toy/ShapeInferenceInterface.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallPtrSet.h"
-#include "llvm/Support/Casting.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/raw_ostream.h"
-#include <memory>
 
 #define DEBUG_TYPE "shape-inference"
 
@@ -52,8 +52,7 @@ namespace {
     ///     d) infer the shape of its output from the argument types.
     ///   3) If the worklist is empty, the algorithm succeeded.
     ///
-    struct ShapeInferencePass
-            : public mlir::PassWrapper<ShapeInferencePass, OperationPass<toy::FuncOp> > {
+    struct ShapeInferencePass : public mlir::PassWrapper<ShapeInferencePass, OperationPass<toy::FuncOp>> {
         MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ShapeInferencePass)
 
         StringRef getArgument() const override { return "toy-shape-inference"; }
@@ -87,15 +86,14 @@ namespace {
                     shapeOp.inferShapes();
                 } else {
                     op->emitError("unable to infer shape of operation without shape "
-                        "inference interface");
+                                  "inference interface");
                     return signalPassFailure();
                 }
             }
 
             // If the operation worklist isn't empty, this indicates a failure.
             if (!opWorklist.empty()) {
-                f.emitError("Shape inference failed, ")
-                        << opWorklist.size() << " operations couldn't be inferred\n";
+                f.emitError("Shape inference failed, ") << opWorklist.size() << " operations couldn't be inferred\n";
                 signalPassFailure();
             }
         }
@@ -103,22 +101,18 @@ namespace {
         /// A utility method that returns if the given operation has all of its
         /// operands inferred.
         static bool allOperandsInferred(Operation *op) {
-            return llvm::all_of(op->getOperandTypes(), [](Type operandType) {
-                return llvm::isa<RankedTensorType>(operandType);
-            });
+            return llvm::all_of(op->getOperandTypes(),
+                                [](Type operandType) { return llvm::isa<RankedTensorType>(operandType); });
         }
 
         /// A utility method that returns if the given operation has a dynamically
         /// shaped result.
         static bool returnsDynamicShape(Operation *op) {
-            return llvm::any_of(op->getResultTypes(), [](Type resultType) {
-                return !llvm::isa<RankedTensorType>(resultType);
-            });
+            return llvm::any_of(op->getResultTypes(),
+                                [](Type resultType) { return !llvm::isa<RankedTensorType>(resultType); });
         }
     };
 } // namespace
 
 /// Create a Shape Inference pass.
-std::unique_ptr<mlir::Pass> mlir::toy::createShapeInferencePass() {
-    return std::make_unique<ShapeInferencePass>();
-}
+std::unique_ptr<mlir::Pass> mlir::toy::createShapeInferencePass() { return std::make_unique<ShapeInferencePass>(); }

@@ -26,48 +26,42 @@
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/Passes.h"
 
+#include <memory>
+#include <string>
+#include <system_error>
+#include <utility>
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
-#include <memory>
-#include <string>
-#include <system_error>
-#include <utility>
 
 using namespace toy;
 namespace cl = llvm::cl;
 
-static cl::opt<std::string> inputFilename(cl::Positional,
-                                          cl::desc("<input toy file>"),
-                                          cl::init("-"),
+static cl::opt<std::string> inputFilename(cl::Positional, cl::desc("<input toy file>"), cl::init("-"),
                                           cl::value_desc("filename"));
 
 namespace {
     enum InputType { Toy, MLIR };
 } // namespace
-static cl::opt<enum InputType> inputType(
-    "x", cl::init(Toy), cl::desc("Decided the kind of output desired"),
-    cl::values(clEnumValN(Toy, "toy", "load the input file as a Toy source.")),
-    cl::values(clEnumValN(MLIR, "mlir",
-                          "load the input file as an MLIR file")));
+static cl::opt<enum InputType> inputType("x", cl::init(Toy), cl::desc("Decided the kind of output desired"),
+                                         cl::values(clEnumValN(Toy, "toy", "load the input file as a Toy source.")),
+                                         cl::values(clEnumValN(MLIR, "mlir", "load the input file as an MLIR file")));
 
 namespace {
     enum Action { None, DumpAST, DumpMLIR };
 } // namespace
-static cl::opt<enum Action> emitAction(
-    "emit", cl::desc("Select the kind of output desired"),
-    cl::values(clEnumValN(DumpAST, "ast", "output the AST dump")),
-    cl::values(clEnumValN(DumpMLIR, "mlir", "output the MLIR dump")));
+static cl::opt<enum Action> emitAction("emit", cl::desc("Select the kind of output desired"),
+                                       cl::values(clEnumValN(DumpAST, "ast", "output the AST dump")),
+                                       cl::values(clEnumValN(DumpMLIR, "mlir", "output the MLIR dump")));
 
 static cl::opt<bool> enableOpt("opt", cl::desc("Enable optimizations"));
 
 /// Returns a Toy AST resulting from parsing the file or a nullptr on error.
 std::unique_ptr<toy::ModuleAST> parseInputFile(llvm::StringRef filename) {
-    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer> > fileOrErr =
-            llvm::MemoryBuffer::getFileOrSTDIN(filename);
+    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileOrErr = llvm::MemoryBuffer::getFileOrSTDIN(filename);
     if (std::error_code ec = fileOrErr.getError()) {
         llvm::errs() << "Could not open input file: " << ec.message() << "\n";
         return nullptr;
@@ -78,11 +72,9 @@ std::unique_ptr<toy::ModuleAST> parseInputFile(llvm::StringRef filename) {
     return parser.parseModule();
 }
 
-int loadMLIR(llvm::SourceMgr &sourceMgr, mlir::MLIRContext &context,
-             mlir::OwningOpRef<mlir::ModuleOp> &module) {
+int loadMLIR(llvm::SourceMgr &sourceMgr, mlir::MLIRContext &context, mlir::OwningOpRef<mlir::ModuleOp> &module) {
     // Handle '.toy' input to the compiler.
-    if (inputType != InputType::MLIR &&
-        !llvm::StringRef(inputFilename).ends_with(".mlir")) {
+    if (inputType != InputType::MLIR && !llvm::StringRef(inputFilename).ends_with(".mlir")) {
         auto moduleAST = parseInputFile(inputFilename);
         if (!moduleAST)
             return 6;
@@ -91,8 +83,7 @@ int loadMLIR(llvm::SourceMgr &sourceMgr, mlir::MLIRContext &context,
     }
 
     // Otherwise, the input is '.mlir'.
-    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer> > fileOrErr =
-            llvm::MemoryBuffer::getFileOrSTDIN(inputFilename);
+    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileOrErr = llvm::MemoryBuffer::getFileOrSTDIN(inputFilename);
     if (std::error_code ec = fileOrErr.getError()) {
         llvm::errs() << "Could not open input file: " << ec.message() << "\n";
         return -1;
