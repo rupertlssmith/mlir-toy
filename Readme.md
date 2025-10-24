@@ -4,7 +4,7 @@ There is a Toy language tutorial included with MLIR. This project extracts that
 code as a standalone repository, with some example programs and full
 instructions on how to build an run it.
 
-## To use the interactive Docker container
+## To use the interactive Docker container (recommended)
 
 This step will take some time top build the docker image, as it checks out the 
 LLVM git and builds it. This is set up to support interactive development inside
@@ -151,3 +151,14 @@ Try full lowering to llvm:
 Try running the example in the JIT
 
     ./build/chapter6/toyc-ch6 -emit=jit < examples/transpose.toy
+
+### Chapter 7
+
+Build it:
+
+    cmake --build --preset build --target toyc-ch7
+
+Try running the example in the JIT
+
+    ./build/chapter7/toyc-ch7 -emit=jit < examples/struct.toy
+
