@@ -1,16 +1,8 @@
-# Try out working with mlir
+# MLIR Toy Language Tutorial
 
-## To work directly on a Debian host
-
-Install the following packages on Debian or other apt based Linux:
-
-    sudo apt install clang lld ninja-build cmake ccache
-
-A CMake preset configuration to build with ninja, clang and lld exists in 
-`CMakePresets.json`. To set up the build and run it:
-
-    cmake --preset ninja-clang-lld-linux
-    cmake --build --preset build
+There is a Toy language tutorial included with MLIR. This project extracts that
+code as a standalone repository, with some example programs and full
+instructions on how to build an run it.
 
 ## To use the interactive Docker container
 
@@ -43,11 +35,70 @@ Set up the build with:
 
     cmake --preset ninja-clang-lld-linux
 
+## To work directly on a Debian or other apt-based Linux host
+
+Install the following packages:
+
+    sudo apt install clang lld ninja-build cmake ccache
+
+Next you need to checkout the LLVM project and build and install it on
+your system:
+
+    LLVM_VERSION=21.1.4
+    git clone --branch "llvmorg-${LLVM_VERSION}" https://github.com/llvm/llvm-project.git
+
+    cd llvm-project
+    cmake -S llvm -B build -G Ninja \
+    -DLLVM_ENABLE_PROJECTS="mlir" \
+    -DLLVM_TARGETS_TO_BUILD="Native;NVPTX;AMDGPU" \
+    -DLLVM_ENABLE_ASSERTIONS=ON \
+    -DLLVM_ENABLE_RTTI=ON \
+    -DMLIR_ENABLE_CMAKE_PACKAGE=ON \
+    -DLLVM_ENABLE_ZLIB=OFF \
+    -DLLVM_ENABLE_LIBXML2=OFF \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_C_COMPILER=clang \
+    -DCMAKE_CXX_COMPILER=clang++ \
+    -DLLVM_USE_LINKER=lld \
+    -DCMAKE_INSTALL_PREFIX=/opt/llvm-mlir
+
+    cmake --build build
+    sudo cmake --install build
+
+A CMake preset configuration to build with ninja, clang and lld exists in
+`CMakePresets.json`. Set up the build in this project with:
+
+    cmake --preset ninja-clang-lld-linux
+
 ## Examples
+
+There are some example Toy programs included that are used in the tutorial to
+demonstrate various compiler capabilities. These are:
+
+* first.toy - the first example program from chapter 1 of the tutorial.
+* reshape.toy - eliminating unnecessary reshape operations.
+* transpose.toy - eliminating unnecessary transpose operations. 
+* struct.toy - adding a struct datatype to the language.
 
 ### Chapter 1
 
+Build it:
+
+    cmake --build --preset build --target toyc-ch1
+
+Try parsing a program and printing the AST:
+
+    ./build/chapter1/toyc-ch1 -emit=ast < examples/first.toy
+
 ### Chapter 2
+
+Build it:
+
+    cmake --build --preset build --target toyc-ch2
+
+Try turning a program into high-level MLIR:
+
+    ./build/chapter2/toyc-ch2 -emit=mlir < examples/first.toy 
 
 ### Chapter 3
 
@@ -57,13 +108,13 @@ Build it:
  
 Try hand coded rule for eliminating double transpose:
 
-    ./build/chapter3/toyc-ch3 -emit=mlir < chapter3/example1.toy
-    ./build/chapter3/toyc-ch3 -emit=mlir -opt < chapter3/example1.toy
+    ./build/chapter3/toyc-ch3 -emit=mlir < examples/transpose.toy
+    ./build/chapter3/toyc-ch3 -emit=mlir -opt < examples/transpose.toy
  
 Try table-gen rewrite rule for eliminating unnecessary reshapes:
 
-    ./build/chapter3/toyc-ch3 -emit=mlir < chapter3/example2.toy
-    ./build/chapter3/toyc-ch3 -emit=mlir -opt < chapter3/example2.toy
+    ./build/chapter3/toyc-ch3 -emit=mlir < examples/reshape.toy
+    ./build/chapter3/toyc-ch3 -emit=mlir -opt < examples/reshape.toy
 
 ### Chapter 4
 
@@ -73,8 +124,8 @@ Build it:
 
 Try function inlining and shape inference passes:
 
-    ./build/chapter4/toyc-ch4 -emit=mlir < chapter4/example1.toy
-    ./build/chapter4/toyc-ch4 -emit=mlir -opt < chapter4/example1.toy
+    ./build/chapter4/toyc-ch4 -emit=mlir < examples/transpose.toy
+    ./build/chapter4/toyc-ch4 -emit=mlir -opt < examples/transpose.toy
 
 ### Chapter 5
 
@@ -84,8 +135,8 @@ Build it:
 
 Try partial lowering to affine and memref (note: -emit=mlir-affine also does -opt):
 
-    ./build/chapter5/toyc-ch5 -emit=mlir < chapter5/example1.toy
-    ./build/chapter5/toyc-ch5 -emit=mlir-affine < chapter5/example1.toy
+    ./build/chapter5/toyc-ch5 -emit=mlir < examples/transpose.toy
+    ./build/chapter5/toyc-ch5 -emit=mlir-affine < examples/transpose.toy
 
 ### Chapter 6
 
@@ -95,8 +146,8 @@ Build it:
 
 Try full lowering to llvm:
 
-    ./build/chapter6/toyc-ch6 -emit=mlir-llvm < chapter6/example1.toy
+    ./build/chapter6/toyc-ch6 -emit=mlir-llvm < examples/transpose.toy
 
 Try running the example in the JIT
 
-    ./build/chapter6/toyc-ch6 -emit=mlir-llvm < chapter6/example2.toy
+    ./build/chapter6/toyc-ch6 -emit=jit < examples/transpose.toy
